@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter URL ID 提取工具</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #1DA1F2;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .container {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+        }
+        button {
+            background-color: #1DA1F2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0c85d0;
+        }
+        .result {
+            margin-top: 30px;
+            display: none;
+        }
+        .loading {
+            text-align: center;
+            display: none;
+        }
+        .error {
+            color: #dc3545;
+            margin-top: 10px;
+            display: none;
+        }
+        .success {
+            color: #28a745;
+            margin-top: 10px;
+            display: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .download-btn {
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Twitter URL ID 提取工具</h1>
+    
+    <div class="container">
+        <div class="form-group">
+            <label for="excelFile">上传Excel文件（包含Twitter URL）:</label>
+            <input type="file" id="excelFile" accept=".xlsx, .xls">
+        </div>
+        
+        <button id="uploadBtn">上传并处理</button>
+        
+        <div class="loading" id="loading">
+            <p>正在处理，请稍候...</p>
+        </div>
+        
+        <div class="error" id="error"></div>
+        <div class="success" id="success"></div>
+        
+        <div class="result" id="result">
+            <h2>处理结果</h2>
+            <p>总URL数: <span id="totalUrls">0</span></p>
+            <p>成功处理: <span id="successUrls">0</span></p>
+            <p>处理失败: <span id="failedUrls">0</span></p>
+            
+            <table id="resultTable">
+                <thead>
+                    <tr>
+                        <th>Twitter URL</th>
+                        <th>用户名</th>
+                        <th>用户ID</th>
+                        <th>状态</th>
+                    </tr>
+                </thead>
+                <tbody id="resultBody">
+                </tbody>
+            </table>
+            
+            <div class="download-btn">
+                <button id="downloadBtn">下载处理后的Excel文件</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadBtn = document.getElementById('uploadBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const excelFile = document.getElementById('excelFile');
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const success = document.getElementById('success');
+            const result = document.getElementById('result');
+            const totalUrls = document.getElementById('totalUrls');
+            const successUrls = document.getElementById('successUrls');
+            const failedUrls = document.getElementById('failedUrls');
+            const resultBody = document.getElementById('resultBody');
+            
+            let processedFile = '';
+            
+            uploadBtn.addEventListener('click', async function() {
+                if (!excelFile.files.length) {
+                    error.textContent = '请选择一个Excel文件';
+                    error.style.display = 'block';
+                    return;
+                }
+                
+                const file = excelFile.files[0];
+                if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+                    error.textContent = '请选择一个Excel文件 (.xlsx 或 .xls)';
+                    error.style.display = 'block';
+                    return;
+                }
+                
+                // Reset UI
+                error.style.display = 'none';
+                success.style.display = 'none';
+                result.style.display = 'none';
+                loading.style.display = 'block';
+                
+                try {
+                    // Upload the file
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    const uploadResponse = await fetch('/api/upload-excel', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (!uploadResponse.ok) {
+                        const errorData = await uploadResponse.json();
+                        throw new Error(errorData.detail || '上传文件失败');
+                    }
+                    
+                    const uploadData = await uploadResponse.json();
+                    
+                    // Process the file
+                    const processFormData = new FormData();
+                    processFormData.append('file_id', uploadData.filename);
+                    
+                    const processResponse = await fetch('/api/process-excel', {
+                        method: 'POST',
+                        body: processFormData
+                    });
+                    
+                    if (!processResponse.ok) {
+                        const errorData = await processResponse.json();
+                        throw new Error(errorData.detail || '处理文件失败');
+                    }
+                    
+                    const processData = await processResponse.json();
+                    
+                    // Update UI with results
+                    processedFile = processData.processed_file;
+                    totalUrls.textContent = processData.results.total_urls;
+                    successUrls.textContent = processData.results.successful;
+                    failedUrls.textContent = processData.results.failed;
+                    
+                    // Clear previous results
+                    resultBody.innerHTML = '';
+                    
+                    // Add results to table
+                    processData.results.processed_urls.forEach(url => {
+                        const row = document.createElement('tr');
+                        
+                        const urlCell = document.createElement('td');
+                        urlCell.textContent = url.url;
+                        row.appendChild(urlCell);
+                        
+                        const handleCell = document.createElement('td');
+                        handleCell.textContent = url.handle || '-';
+                        row.appendChild(handleCell);
+                        
+                        const idCell = document.createElement('td');
+                        idCell.textContent = url.user_id || '-';
+                        row.appendChild(idCell);
+                        
+                        const statusCell = document.createElement('td');
+                        statusCell.textContent = url.status === 'success' ? '成功' : '失败';
+                        statusCell.style.color = url.status === 'success' ? '#28a745' : '#dc3545';
+                        row.appendChild(statusCell);
+                        
+                        resultBody.appendChild(row);
+                    });
+                    
+                    // Show results
+                    loading.style.display = 'none';
+                    success.textContent = '文件处理成功！';
+                    success.style.display = 'block';
+                    result.style.display = 'block';
+                    
+                } catch (err) {
+                    loading.style.display = 'none';
+                    error.textContent = err.message;
+                    error.style.display = 'block';
+                }
+            });
+            
+            downloadBtn.addEventListener('click', function() {
+                if (processedFile) {
+                    window.location.href = `/api/download/${processedFile}`;
+                } else {
+                    error.textContent = '没有可下载的文件';
+                    error.style.display = 'block';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
