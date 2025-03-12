@@ -216,6 +216,47 @@ async def download_file(filename: str):
         logging.error(f"Error downloading file: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error downloading file: {str(e)}")
 
+@app.post("/api/sync-database")
+async def sync_database(
+    background_tasks: BackgroundTasks,
+    file_id: str = Form(...),
+    sync_to_mysql: bool = Form(True),
+    test_mode: bool = Form(True)
+):
+    """
+    Synchronize database tables after processing an Excel file
+    
+    Args:
+        file_id: ID of the uploaded file (filename)
+        sync_to_mysql: Whether to synchronize with MySQL
+        test_mode: Whether to run in test mode (no actual MySQL updates)
+        
+    Returns:
+        Synchronization results
+    """
+    try:
+        # Check if the file exists
+        file_path = os.path.join(UPLOAD_DIR, file_id)
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail=f"File {file_id} not found")
+        
+        # Import the database_sync module
+        from app.database_sync import process_excel_and_sync
+        
+        # Process the Excel file and synchronize data
+        results = process_excel_and_sync(
+            excel_path=file_path,
+            db_path='/home/ubuntu/nitterlocal/data/local_database.db',
+            sync_to_mysql=sync_to_mysql,
+            test_mode=test_mode
+        )
+        
+        return results
+    
+    except Exception as e:
+        logging.error(f"Error synchronizing database: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error synchronizing database: {str(e)}")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
