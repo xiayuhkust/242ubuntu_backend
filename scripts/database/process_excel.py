@@ -50,6 +50,9 @@ def extract_twitter_handle(url):
 def create_kol_character_table(db_path):
     """Create the kol_character table in SQLite database"""
     try:
+        # Ensure the database directory exists
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
