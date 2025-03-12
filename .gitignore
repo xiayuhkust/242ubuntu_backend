@@ -45,3 +45,11 @@ service.pid
 # OS files
 .DS_Store
 Thumbs.db
+
+# Database files
+*.db
+data/local_database.db
+
+# Stats files
+*.json
+data/local_stats.json
