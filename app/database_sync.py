@@ -26,6 +26,9 @@ logging.basicConfig(
 DEFAULT_SQLITE_PATH = '/home/ubuntu/nitterlocal/data/local_database.db'
 DEFAULT_EXCEL_PATH = '/tmp/uploaded_excel.xlsx'
 
+# Ensure the database directory exists
+os.makedirs(os.path.dirname(DEFAULT_SQLITE_PATH), exist_ok=True)
+
 def extract_twitter_handle(url: str) -> Optional[str]:
     """Extract Twitter handle from a URL (works with both twitter.com and x.com)"""
     if not url:
@@ -264,17 +267,36 @@ def process_excel_and_sync(excel_path: str, db_path: str = DEFAULT_SQLITE_PATH, 
         "sqlite_url_tracking_stats": None
     }
     
-    # Process the Excel file
-    results["excel_processing"] = run_process_excel_script(excel_path, db_path)
+    # Ensure the database directory exists
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
     
-    # Get statistics about the kol_character table
-    results["sqlite_kol_character_stats"] = get_sqlite_kol_character_stats(db_path)
+    try:
+        # Process the Excel file
+        results["excel_processing"] = run_process_excel_script(excel_path, db_path)
+    except Exception as e:
+        logging.error(f"Error processing Excel file: {str(e)}")
+        results["excel_processing"] = {"success": False, "processed_count": 0, "output": "", "errors": str(e)}
     
-    # Get statistics about the url_tracking table
-    results["sqlite_url_tracking_stats"] = get_sqlite_url_tracking_stats(db_path)
+    try:
+        # Get statistics about the kol_character table
+        results["sqlite_kol_character_stats"] = get_sqlite_kol_character_stats(db_path)
+    except Exception as e:
+        logging.error(f"Error getting kol_character stats: {str(e)}")
+        results["sqlite_kol_character_stats"] = {"exists": False, "count": 0, "sample_data": [], "error": str(e)}
+    
+    try:
+        # Get statistics about the url_tracking table
+        results["sqlite_url_tracking_stats"] = get_sqlite_url_tracking_stats(db_path)
+    except Exception as e:
+        logging.error(f"Error getting url_tracking stats: {str(e)}")
+        results["sqlite_url_tracking_stats"] = {"exists": False, "count": 0, "sample_data": [], "error": str(e)}
     
     # Synchronize data with MySQL if requested
     if sync_to_mysql:
-        results["kol_character_sync"] = run_sync_kol_character_script(db_path, test=test_mode)
+        try:
+            results["kol_character_sync"] = run_sync_kol_character_script(db_path, test=test_mode)
+        except Exception as e:
+            logging.error(f"Error syncing kol_character: {str(e)}")
+            results["kol_character_sync"] = {"success": False, "processed_count": 0, "output": "", "errors": str(e)}
     
     return results

@@ -26,6 +26,8 @@ MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE", "kol_info")
 
 def get_sqlite_connection(db_path):
     """Get a connection to the SQLite database"""
+    # Ensure the database directory exists
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
     return sqlite3.connect(db_path)
 
 def get_mysql_connection():
