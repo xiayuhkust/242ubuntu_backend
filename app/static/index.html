@@ -342,10 +342,13 @@
                     // Synchronize database
                     const syncFormData = new FormData();
                     // Use the original file name without the _with_ids suffix
-                    const originalFileName = processedFile.includes('_with_ids') 
+                    // Extract the original filename without the _with_ids suffix
+                    let originalFileName = processedFile.includes('_with_ids') 
                         ? processedFile.split('_with_ids')[0] 
                         : processedFile;
-                    syncFormData.append('file_id', originalFileName);
+                    
+                    // Encode the filename to handle spaces and special characters
+                    syncFormData.append('file_id', encodeURIComponent(originalFileName));
                     syncFormData.append('sync_to_mysql', syncToMysql.checked);
                     syncFormData.append('test_mode', testMode.checked);
                     

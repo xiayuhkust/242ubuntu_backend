@@ -8,6 +8,7 @@ import os
 import tempfile
 import shutil
 import logging
+import urllib.parse
 from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime
@@ -144,8 +145,11 @@ async def process_excel(background_tasks: BackgroundTasks, file_id: str = Form(.
     """
     try:
         # Check if the file exists
+        file_id = urllib.parse.unquote(file_id)  # Decode the URL-encoded filename
         file_path = os.path.join(UPLOAD_DIR, file_id)
         if not os.path.exists(file_path):
+            # Log the error for debugging
+            logging.error(f"File not found: {file_path}")
             raise HTTPException(status_code=404, detail=f"File {file_id} not found")
         
         # Initialize the Excel processor
@@ -236,8 +240,11 @@ async def sync_database(
     """
     try:
         # Check if the file exists
+        file_id = urllib.parse.unquote(file_id)  # Decode the URL-encoded filename
         file_path = os.path.join(UPLOAD_DIR, file_id)
         if not os.path.exists(file_path):
+            # Log the error for debugging
+            logging.error(f"File not found: {file_path}")
             raise HTTPException(status_code=404, detail=f"File {file_id} not found")
         
         # Import the database_sync module
