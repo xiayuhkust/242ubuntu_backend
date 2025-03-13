@@ -38,12 +38,12 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
-# Create uploads directory
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
+# Create uploads directory in nitterlocal to share files between projects
+UPLOAD_DIR = '/home/ubuntu/nitterlocal/uploads'
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# Create temporary directory for processed files
-TEMP_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "temp")
+# Create temporary directory for processed files in nitterlocal
+TEMP_DIR = '/home/ubuntu/nitterlocal/temp'
 os.makedirs(TEMP_DIR, exist_ok=True)
 
 # Create static directory
